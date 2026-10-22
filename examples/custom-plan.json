@@ -1,0 +1,32 @@
+{
+  "mode": "custom",
+  "keywords": [
+    "财务分析师"
+  ],
+  "cities": [
+    "上海"
+  ],
+  "platforms": [
+    "boss",
+    "liepin",
+    "zhaopin",
+    "51job",
+    "maimai"
+  ],
+  "salary_min_k": 15,
+  "salary_max_k": 30,
+  "fresh_days": 60,
+  "active_days": 7,
+  "require_active": false,
+  "unknown_policy": "review",
+  "experience_years": 4,
+  "education": "本科",
+  "plus_keywords": [
+    "预算",
+    "经营分析"
+  ],
+  "avoid_keywords": [],
+  "max_pages_per_platform": 3,
+  "jobs_per_platform": 5,
+  "platform_job_counts": {}
+}

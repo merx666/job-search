@@ -1,0 +1,34 @@
+{
+  "mode": "resume",
+  "keywords": [
+    "采购专员"
+  ],
+  "cities": [
+    "苏州"
+  ],
+  "platforms": [
+    "boss",
+    "zhaopin",
+    "51job"
+  ],
+  "salary_min_k": 8,
+  "fresh_days": 60,
+  "active_days": 7,
+  "unknown_policy": "review",
+  "experience_years": 3,
+  "education": "本科",
+  "plus_keywords": [
+    "供应商管理",
+    "成本分析"
+  ],
+  "suggested_directions": [
+    {
+      "title": "供应链专员",
+      "evidence": "虚构示例：曾参与供应商交付跟踪与采购成本分析。",
+      "gap": "需要核实是否具备库存与计划经验。",
+      "accepted": false
+    }
+  ],
+  "jobs_per_platform": 5,
+  "platform_job_counts": {}
+}
