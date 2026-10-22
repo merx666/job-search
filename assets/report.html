@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="有依据的岗位短名单。查看匹配理由、待核实信息及原始岗位。"><title>Job Scout · 投递短名单</title>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="有依据的岗位短名单。查看匹配理由、待核实信息及原始岗位。"><title>Job Search · 投递短名单</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23244e43'/%3E%3Cpath d='M10 10h12v8q0 7-8 7' fill='none' stroke='%23f8f6ef' stroke-width='3'/%3E%3C/svg%3E">
 <style>
 :root{--paper:#f5f4ef;--surface:#fffefa;--ink:#24352e;--muted:#677169;--line:#d9ded5;--green:#244e43;--wash:#e8eee4;--warning:#75582e;--radius:12px;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;font-size:15px;font-variant-numeric:tabular-nums;color:var(--ink);background:var(--paper)}
@@ -9,7 +9,7 @@
 @media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 @media print{.toolbar,.toplinks,.local-actions,.cta,.skip{display:none}.workspace{display:block}.detail{position:static;margin-top:20px}.shell{padding:0}.job{break-inside:avoid}.coverage{display:block}}
 </style></head><body><a class="skip" href="#results">跳到岗位列表</a><div class="shell">
-<header class="topbar"><div class="brand"><span class="mark" aria-hidden="true">j</span>job scout <span class="edition">CAREER FIELDNOTES</span></div><nav class="toplinks" aria-label="报告操作"><a href="jobs.xlsx" download>下载 Excel ↗</a><button id="export" class="control">导出当前列表</button></nav></header>
+<header class="topbar"><div class="brand"><span class="mark" aria-hidden="true">j</span>job search <span class="edition">CAREER FIELDNOTES</span></div><nav class="toplinks" aria-label="报告操作"><a href="jobs.xlsx" download>下载 Excel ↗</a><button id="export" class="control">导出当前列表</button></nav></header>
 <section class="intro"><div><p class="eyebrow">你的下一份工作，从值得投递开始</p><h1>把机会，缩小到值得行动。</h1><p class="lede" id="intro"></p></div><div class="metrics"><div class="metric"><strong id="n-short">0</strong><span>优先投递</span></div><div class="metric"><strong id="n-review">0</strong><span>信息待核实</span></div><div class="metric"><strong id="n-sources">0 / 0</strong><span>平台完成搜索</span></div></div></section>
 <section class="scope" aria-label="本轮搜索条件"><strong id="scope"></strong><span id="policy"></span></section><div class="notice" id="notice" role="status"></div>
 <details class="coverage"><summary id="coverage-title">查看搜索范围与未完成项</summary><div class="coverage-grid" id="coverage"></div></details>
@@ -63,6 +63,6 @@ function renderDetail(){
 }
 for(const id of ['q','platform','sort'])$(id).addEventListener(id==='q'?'input':'change',render);
 document.querySelectorAll('[data-bucket]').forEach(b=>b.onclick=()=>{bucket=b.dataset.bucket;render();});
-$('export').onclick=()=>{const cell=v=>'"'+String(v??'').replace(/^\s*([=+@-])/,'\'$1').replace(/"/g,'""')+'"';const rows=[['岗位','公司','薪资','城市','平台','待核实','链接'],...visible.map(j=>[j.title,j.company,j.salary_display,j.city,sourceName(j.platform),j.unknowns.join('；'),M.demo?'':j.link])];const blob=new Blob(['\ufeff'+rows.map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='job-scout-shortlist.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
+$('export').onclick=()=>{const cell=v=>'"'+String(v??'').replace(/^\s*([=+@-])/,'\'$1').replace(/"/g,'""')+'"';const rows=[['岗位','公司','薪资','城市','平台','待核实','链接'],...visible.map(j=>[j.title,j.company,j.salary_display,j.city,sourceName(j.platform),j.unknowns.join('；'),M.demo?'':j.link])];const blob=new Blob(['\ufeff'+rows.map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='job-search-shortlist.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
 render();
 </script></body></html>

@@ -7,9 +7,9 @@
 只生成本地计划，不访问招聘网站：
 
 ```bash
-.venv/bin/python job_scout.py plan --input examples/custom-plan.json --out ~/job-scout-runs/my-plan.json
-.venv/bin/python job_scout.py plan --keyword "采购专员" --city "苏州" --count 10 --out ~/job-scout-runs/ten-each.json
-.venv/bin/python job_scout.py plan --keyword "采购专员" --city "苏州" --count 5 --platform-count boss=10 --out ~/job-scout-runs/mixed-counts.json
+.venv/bin/python job_search.py plan --input examples/custom-plan.json --out ~/job-search-runs/my-plan.json
+.venv/bin/python job_search.py plan --keyword "采购专员" --city "苏州" --count 10 --out ~/job-search-runs/ten-each.json
+.venv/bin/python job_search.py plan --keyword "采购专员" --city "苏州" --count 5 --platform-count boss=10 --out ~/job-search-runs/mixed-counts.json
 ```
 
 计划格式见 [自定义示例](../examples/custom-plan.json) 和 [简历示例](../examples/resume-plan.json)。`jobs_per_platform` 控制统一数量，`platform_job_counts` 覆盖特定平台；一个平台的富余不能抵扣另一个平台的缺口。
@@ -19,7 +19,7 @@
 先展示完整计划并得到用户明确确认，再复制输出的 `confirmation_id`：
 
 ```bash
-.venv/bin/python job_scout.py scan --plan ~/job-scout-runs/my-plan.json --confirm 已确认计划的ID --out ~/job-scout-runs/first-scan
+.venv/bin/python job_search.py scan --plan ~/job-search-runs/my-plan.json --confirm 已确认计划的ID --out ~/job-search-runs/first-scan
 ```
 
 `--confirm` 只验证计划未变化，不代替用户同意。方向、条件或范围改变后必须重新确认。
@@ -27,7 +27,7 @@
 只检查访问与登录状态：
 
 ```bash
-.venv/bin/python job_scout.py preflight --plan ~/job-scout-runs/my-plan.json --out ~/job-scout-runs/preflight
+.venv/bin/python job_search.py preflight --plan ~/job-search-runs/my-plan.json --out ~/job-search-runs/preflight
 ```
 
 `scan` 完成后，Agent 必须读取 `next-actions.json`，继续处理 `needs_agent` 平台，向用户明确提示真正的登录 / 验证阻塞。详见 [SKILL.md](../SKILL.md) 与 [平台手册](platforms.md)。
@@ -37,7 +37,7 @@
 登录完成或平台冷却后，只恢复受影响平台，不重扫已成功的平台：
 
 ```bash
-.venv/bin/python job_scout.py scan --plan ~/job-scout-runs/my-plan.json --confirm 已确认计划的ID --only boss --out ~/job-scout-runs/resume-boss
+.venv/bin/python job_search.py scan --plan ~/job-search-runs/my-plan.json --confirm 已确认计划的ID --only boss --out ~/job-search-runs/resume-boss
 ```
 
 使用新输出目录保留旧证据。不变的计划无需重复询问用户。遇模型 429 时暂停整轮调用，恢复后先读已有计划、状态和原 request receipt，不从头重复搜索。
@@ -45,13 +45,13 @@
 ## 合并报告与检查进度
 
 ```bash
-.venv/bin/python job_scout.py report --plan ~/job-scout-runs/my-plan.json \
-  --input ~/job-scout-runs/first-scan/raw-jobs.json ~/job-scout-runs/guided-jobs.json \
-  --statuses ~/job-scout-runs/platform-status.json --out ~/job-scout-runs/report
+.venv/bin/python job_search.py report --plan ~/job-search-runs/my-plan.json \
+  --input ~/job-search-runs/first-scan/raw-jobs.json ~/job-search-runs/guided-jobs.json \
+  --statuses ~/job-search-runs/platform-status.json --out ~/job-search-runs/report
 
-.venv/bin/python job_scout.py worklist --plan ~/job-scout-runs/my-plan.json \
-  --input ~/job-scout-runs/first-scan/raw-jobs.json ~/job-scout-runs/guided-jobs.json \
-  --statuses ~/job-scout-runs/platform-status.json --out ~/job-scout-runs/progress
+.venv/bin/python job_search.py worklist --plan ~/job-search-runs/my-plan.json \
+  --input ~/job-search-runs/first-scan/raw-jobs.json ~/job-search-runs/guided-jobs.json \
+  --statuses ~/job-search-runs/platform-status.json --out ~/job-search-runs/progress
 ```
 
 输入格式见 [数据约定](data-contract.md)。未提供状态文件时，导入数据不代表已完成平台搜索。

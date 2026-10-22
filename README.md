@@ -1,4 +1,4 @@
-# Job Scout
+# Job Search｜求职岗位筛选与招聘信息整理 Agent Skill
 
 **把求职条件，整理成一份有来源、有理由、能逐条核实的投递短名单。**
 
@@ -6,9 +6,26 @@
 
 可以直接给条件，也可以提供简历，让 Agent 先建议方向。**简历里推导出的新方向，要经你确认才会搜索。**
 
-![Job Scout 演示：查看短名单、筛选平台、核实缺失信息并标记岗位](assets/demo.gif)
+![Job Search 演示：查看短名单、筛选平台、核实缺失信息并标记岗位](assets/demo.gif)
 
 上图由程序自带的虚构数据生成，演示报告筛选、来源核实和本地标记；不是实时招聘结果，也不表示已找到 25 个岗位。
+
+[使用示例](#quick-example) · [开始使用](#quick-start) · [English](#english-overview)
+
+<a id="quick-example"></a>
+
+## 一次使用示例
+
+**输入示例：**
+
+```text
+帮我找上海或杭州的高级产品经理岗位，月薪 30K 以上。
+先确认条件和平台，再搜索；缺薪资或发布时间的岗位单独标为待核实。
+```
+
+**输出：** 同一份 HTML、Excel 和 JSON 岗位清单，保留来源链接、采集时间、匹配依据和待核实项。数量不足会如实显示，不拿未核实岗位补足目标。
+
+[安装并开始搜索](#quick-start)。上方演示使用虚构数据，不是这组条件的实时搜索结果。
 
 ## 最后会拿到什么
 
@@ -35,6 +52,8 @@
 
 默认搜索 BOSS直聘、猎聘、脉脉、智联招聘、前程无忧，目标是**每个平台 5 个符合条件的岗位**。也可以指定每个平台 10 个，或给各平台不同数量。目标不等于承诺：缺少发布日期、薪资不完整的岗位会进入“待核实”，不拿来凑数。
 
+<a id="quick-start"></a>
+
 ## 安装
 
 需要 Python 3.10+、能执行本地命令的 Skill 宿主，以及 [Tabbit 浏览器](https://www.tabbit.com/)的稳定 CLI。Apple 芯片 Mac 选择 Apple Silicon 版；也可从[国际站下载](https://www.tabbit.ai/download)。在 Tabbit 中按客户端说明启用 CLI，详见 [Tabbit 操作说明](references/tabbit.md)。
@@ -42,28 +61,28 @@
 ### macOS / Linux
 
 ```bash
-git clone https://github.com/ouxxyy/job-scout.git
-cd job-scout
+git clone https://github.com/ouxxyy/job-search.git
+cd job-search
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python job_scout.py doctor
+.venv/bin/python job_search.py doctor
 .venv/bin/python install.py --target ~/.agents/skills
 ```
 
-`install.py` 将当前目录链接到宿主的 `skills/job-scout`，不会覆盖已有的不同目录。请保留克隆目录。Claude Code 用户将最后一行的目标换成 `~/.claude/skills`；其他宿主使用各自的 Skill 目录。
+`install.py` 将当前目录链接到宿主的 `skills/job-search`，不会覆盖已有的不同目录。请保留克隆目录。Claude Code 用户将最后一行的目标换成 `~/.claude/skills`；其他宿主使用各自的 Skill 目录。
 
 ### Windows
 
 在 PowerShell 中克隆仓库后，使用副本安装：
 
 ```powershell
-git clone https://github.com/ouxxyy/job-scout.git
-cd job-scout
+git clone https://github.com/ouxxyy/job-search.git
+cd job-search
 py -3 install.py --target "$env:USERPROFILE\.agents\skills" --copy
-cd "$env:USERPROFILE\.agents\skills\job-scout"
+cd "$env:USERPROFILE\.agents\skills\job-search"
 py -3 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
-.\.venv\Scripts\python.exe job_scout.py doctor
+.\.venv\Scripts\python.exe job_search.py doctor
 ```
 
 实机检查覆盖 macOS arm64；Windows / Linux 路径有处理，但尚未完成对应系统的端到端验证。`doctor` 只检查依赖和启动器路径，不代表招聘平台已登录。
@@ -72,7 +91,7 @@ py -3 -m venv .venv
 
 装好后，在 Agent 中说：
 
-> 用 job-scout 帮我找上海财务分析师，月薪 15–30K，近两个月发布，每个平台 5 个。先列筛选条件让我确认，再用 Tabbit 搜索，给我 HTML 和 Excel 投递短名单。
+> 用 job-search 帮我找上海财务分析师，月薪 15–30K，近两个月发布，每个平台 5 个。先列筛选条件让我确认，再用 Tabbit 搜索，给我 HTML 和 Excel 投递短名单。
 
 也可以带上简历：
 
@@ -81,7 +100,7 @@ py -3 -m venv .venv
 想先看报告长什么样，可以运行离线演示，不需要登录招聘网站：
 
 ```bash
-.venv/bin/python job_scout.py demo --out ~/job-scout-runs/demo
+.venv/bin/python job_search.py demo --out ~/job-search-runs/demo
 ```
 
 用浏览器打开输出目录里的 `jobs.html`；同目录有 `jobs.xlsx` 和 JSON。所有演示公司、岗位和平台状态都是虚构的。
@@ -114,10 +133,49 @@ py -3 -m venv .venv
 ```bash
 .venv/bin/python -m unittest discover -s tests -v
 node --test tests/test_collect.cjs tests/test_page_state.cjs
-.venv/bin/python build_package.py --out ~/job-scout-release
+.venv/bin/python build_package.py --out ~/job-search-release
 ```
 
 发布包按显式文件清单构建，不包含虚拟环境、私人报告或备份。验证范围见 [验证说明](references/verification.md)，数据格式见 [数据约定](references/data-contract.md)。
+
+## 常见问题
+
+### 它会自动投递、联系 HR 或上传简历吗？
+
+不会。项目整理清单，投递由你决定；简历是可选材料，不自动上传。
+
+### 能先根据简历建议方向吗？
+
+可以先提出建议，但从简历推导出的新方向必须经你确认后才搜索。
+
+### 能保证每个平台找到足够的岗位吗？
+
+目标数量不代表承诺。登录受限、证据不足或条件不符会单独记录，未核实项不算已确认匹配。
+
+### 跨平台与系统支持验证到哪一步？
+
+需要 Python 3.10+ 和 Tabbit 稳定 CLI。目前实机覆盖 macOS arm64，Windows/Linux 与五平台登录后的完整在线流程仍有未验证项。
+
+<a id="english-overview"></a>
+
+## English overview
+
+Job Search is a job search Agent Skill that turns confirmed criteria into source-backed HTML, Excel and JSON job lists. It keeps source links, collection times, matching reasons and unresolved fields. It does not apply for jobs, contact recruiters or upload a resume automatically.
+
+See [installation](#quick-start). Python 3.10+ and Tabbit's stable CLI are required. Directions inferred from a resume require confirmation. Full logged-in acceptance across all five recruitment platforms and end-to-end Windows/Linux validation remain incomplete.
+
+## 改名与兼容
+
+项目原名 Job Scout，现统一使用 **Job Search / job-search**。GitHub 旧地址保留跳转；新安装使用 `skills/job-search` 和 `job_search.py`。
+
+已有脚本仍可运行 `job_scout.py`，若移动已有源码目录，请保留旧路径软链接或重建虚拟环境。内部 `jobscout` 模块、`JOB_SCOUT_STATE_DIR`、锁目录与报告本地标记键保持兼容，不需要移动既有求职结果。旧技能入口请重新安装或重载为 `job-search`；安装器只清理指向同一源码的旧软链接，不删除旧的真实目录。
+
+## 相关项目
+
+[欧八同学的 AI Skills 与跳槽涨薪工具合集](https://github.com/ouxxyy/ouba-classmate)，还可以接着使用：
+
+- [选好岗位后对照 JD 检查简历](https://github.com/ouxxyy/jd-resume-match)
+- [进一步核查目标公司](https://github.com/ouxxyy/sherlock-company)
 
 ## 作者
 
@@ -132,7 +190,7 @@ node --test tests/test_collect.cjs tests/test_page_state.cjs
   <img src="assets/wechat-qr.jpg" alt="欧八同学微信公众号二维码" width="260">
 </p>
 
-如果它帮你少做了一些重复整理，欢迎点个 Star。遇到问题可以[提 Issue](https://github.com/ouxxyy/job-scout/issues)，附命令、脱敏报错和最小复现步骤；请别上传简历、Cookie、联系方式或私人求职清单。
+如果它帮你少做了一些重复整理，欢迎点个 Star。遇到问题可以[提 Issue](https://github.com/ouxxyy/job-search/issues)，附命令、脱敏报错和最小复现步骤；请别上传简历、Cookie、联系方式或私人求职清单。
 
 ## 许可证与来源
 

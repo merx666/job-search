@@ -7,8 +7,8 @@
 ```bash
 python -m unittest discover -s tests -v
 node --test tests/test_collect.cjs tests/test_page_state.cjs
-python job_scout.py demo --out /tmp/job-scout-demo
-python build_package.py --out /tmp/job-scout-release
+python job_search.py demo --out /tmp/job-search-demo
+python build_package.py --out /tmp/job-search-release
 ```
 
 CI 在 Python 3.10 / 3.12 上执行这些检查。离线测试使用合成岗位和模拟浏览器，不访问招聘网站。

@@ -53,7 +53,7 @@ class CliTests(unittest.TestCase):
     def test_install_never_overwrites(self):
         from install import install
         with tempfile.TemporaryDirectory() as t:
-            existing=Path(t)/'job-scout';existing.mkdir();(existing/'keep.txt').write_text('keep')
+            existing=Path(t)/'job-search';existing.mkdir();(existing/'keep.txt').write_text('keep')
             with self.assertRaises(ValueError):install(t)
             self.assertEqual((existing/'keep.txt').read_text(),'keep')
     def test_duplicate_install_reuses_link(self):

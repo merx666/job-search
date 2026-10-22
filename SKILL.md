@@ -1,9 +1,9 @@
 ---
-name: job-scout
+name: job-search
 description: 为中文求职者按任意岗位、城市、薪资、经验、学历和时效筛选招聘信息，用 Tabbit 生成有来源证据的 Excel 与 HTML 投递短名单。支持用户自定义条件或简历分析；简历可建议相关岗位方向，但仅在用户确认后搜索。覆盖 BOSS直聘、猎聘、脉脉、智联招聘、前程无忧，按需加入鱼泡、实习僧；先检查登录，明确报告平台缺口，不自动投递或联系 HR。
 ---
 
-# Job Scout
+# Job Search
 
 优先服务目标明确、需要“值得投递的岗位短名单”的求职者。把扩展方向作为简历模式的可选建议，不擅自扩展搜索，不把关键词分数称为录用概率。
 
@@ -21,7 +21,7 @@ description: 为中文求职者按任意岗位、城市、薪资、经验、学�
 以本 SKILL.md 所在目录为 `SKILL_DIR`，不写死机器用户名或安装路径。使用此目录的 `.venv/bin/python`（Windows 为 `.venv/Scripts/python.exe`）；没有虚拟环境时按 [README.md](README.md) 安装。运行：
 
 ```bash
-python "$SKILL_DIR/job_scout.py" doctor
+python "$SKILL_DIR/job_search.py" doctor
 ```
 
 阅读 [Tabbit 操作](references/tabbit.md)，只通过稳定启动器连接 Tabbit。环境没有该工具时明确提示安装，仍可先整理计划或生成已有数据的报告。浏览器沙箱拒绝时走宿主授权机制，不能把连接失败归因于用户未登录。
@@ -36,7 +36,7 @@ python "$SKILL_DIR/job_scout.py" doctor
 - 最多 2 个可迁移方向，每项列“岗位名称 / 简历依据 / 差距”。用户限定只投某岗时，以该方向为主，其他方向仅建议，不自动加入。
 - 避免把姓名、电话、住址、身份证、简历原文写入搜索词或报告；不上传简历到招聘平台。
 
-填写计划，参考 [自定义示例](examples/custom-plan.json) 和 [简历示例](examples/resume-plan.json)。支持列表以 `job_scout.py platforms` 为准，默认完整覆盖 BOSS直聘、猎聘、脉脉、智联招聘、前程无忧五个平台；不得因只有两个自动采集适配器而自行缩减。用户明确指定平台时遵循其选择；鱼泡和实习僧按场景补充并确认。不得将未覆盖的平台称为“没人用”。
+填写计划，参考 [自定义示例](examples/custom-plan.json) 和 [简历示例](examples/resume-plan.json)。支持列表以 `job_search.py platforms` 为准，默认完整覆盖 BOSS直聘、猎聘、脉脉、智联招聘、前程无忧五个平台；不得因只有两个自动采集适配器而自行缩减。用户明确指定平台时遵循其选择；鱼泡和实习僧按场景补充并确认。不得将未覆盖的平台称为“没人用”。
 
 默认每个平台交付 5 个符合已确认条件的岗位，五个平台目标合计 25 个。用户可以说“每个平台 10 个”，或“BOSS 10 个、其他各 5 个”。数量字段 `jobs_per_platform` 与 `platform_job_counts` 独立控制各平台，不能用一个平台的富余抵扣其他平台。数量是目标，不是承诺凑数；待核实和不符合条件的岗位不得计入达标数量。
 
@@ -47,7 +47,7 @@ python "$SKILL_DIR/job_scout.py" doctor
 运行 `plan` 仅规范化数据，不打开浏览器：
 
 ```bash
-python "$SKILL_DIR/job_scout.py" plan --input "$RUN/draft.json" --out "$RUN/plan.json"
+python "$SKILL_DIR/job_search.py" plan --input "$RUN/draft.json" --out "$RUN/plan.json"
 ```
 
 展示：已选方向与关键词、城市、薪资、经验学历、必需/排除条件、发布时间与活跃口径、未知信息处理、平台、每个平台目标数量、结果页与详情页预算。简历的扩展方向单独列出，未接受项的 `accepted` 为 false 且不得加入 `keywords`。
@@ -63,7 +63,7 @@ python "$SKILL_DIR/job_scout.py" plan --input "$RUN/draft.json" --out "$RUN/plan
 检查全部可用的同平台现有标签后，确实看到登录墙时，才向用户发出可见消息，例如：“请先在 Tabbit 登录【脉脉】：链接。完成后告诉我‘已登录’，我会继续；也可以明确说跳过这个平台。”不能只在 JSON 写 `login_required`、留一条日志或直接交付两个平台。可同时继续其他已登录平台；没有用户明确跳过则始终保留该平台为未完成。
 
 ```bash
-python "$SKILL_DIR/job_scout.py" scan --plan "$RUN/plan.json" --confirm CONFIRMATION_ID --out "$RUN/scan"
+python "$SKILL_DIR/job_search.py" scan --plan "$RUN/plan.json" --confirm CONFIRMATION_ID --out "$RUN/scan"
 ```
 
 `scan` 自动逐平台前置检查，BOSS/猎聘在可访问时自动采集；其他平台输出 `guided_pending` 并保留页面。**必须马上读取输出的 `next-actions.json`；这个状态不是任务完成，也不是可选待办。** 按其中 `needs_agent` 逐个继续，不能在两家自动采集结束后直接给最终答复。继续按 [平台操作手册](references/platforms.md) 用 Tabbit 搜索脉脉、智联、前程无忧等，提取统一岗位证据并汇入同一报告。遇未收录城市也走可视页面选城流程，不猜城市码。
@@ -73,7 +73,7 @@ python "$SKILL_DIR/job_scout.py" scan --plan "$RUN/plan.json" --confirm CONFIRMA
 确实出现登录墙/验证码时立即停止该平台，输出平台名、当前入口、恢复步骤；保留页面。不要等待无限循环、自动填写验证码或反复刷新。其他平台继续。登录完成后只恢复受影响平台：
 
 ```bash
-python "$SKILL_DIR/job_scout.py" scan --plan "$RUN/plan.json" --confirm CONFIRMATION_ID --only boss --out "$RUN/resume-boss"
+python "$SKILL_DIR/job_search.py" scan --plan "$RUN/plan.json" --confirm CONFIRMATION_ID --only boss --out "$RUN/resume-boss"
 ```
 
 恢复单个平台不要求重新确认不变的筛选条件；不要重扫成功平台。脉脉等登录后若网页仍没有求职搜索入口，标为 `app_required` 或 `needs_inspection`，说明需要用户提供 App 岗位链接/文字；不猜接口、不把招聘方人才搜索当求职岗位搜索。
@@ -91,7 +91,7 @@ python "$SKILL_DIR/job_scout.py" scan --plan "$RUN/plan.json" --confirm CONFIRMA
 依据 [数据格式](references/data-contract.md) 整理 `guided-jobs.json` 与 `platform-status.json`，把自动采集的 `raw-jobs.json` 合并：
 
 ```bash
-python "$SKILL_DIR/job_scout.py" report --plan "$RUN/plan.json" \
+python "$SKILL_DIR/job_search.py" report --plan "$RUN/plan.json" \
   --input "$RUN/scan/raw-jobs.json" "$RUN/guided-jobs.json" \
   --statuses "$RUN/platform-status.json" --out "$RUN/report"
 ```
@@ -101,7 +101,7 @@ python "$SKILL_DIR/job_scout.py" report --plan "$RUN/plan.json" \
 报告生成后运行 `worklist`（或读取报告中的 `next-actions.json`）：
 
 ```bash
-python "$SKILL_DIR/job_scout.py" worklist --plan "$RUN/plan.json"   --input "$RUN/scan/raw-jobs.json" "$RUN/guided-jobs.json"   --statuses "$RUN/platform-status.json" --out "$RUN/progress"
+python "$SKILL_DIR/job_search.py" worklist --plan "$RUN/plan.json"   --input "$RUN/scan/raw-jobs.json" "$RUN/guided-jobs.json"   --statuses "$RUN/platform-status.json" --out "$RUN/progress"
 ```
 
 `can_deliver_final=false`：继续处理 `needs_agent`，把 `needs_user` 登录提示直接发给用户，不能宣称已完成。`can_deliver_final=true` 但 `complete=false`：只能交付带明确不足原因的部分结果。`complete=true` 才表示所有平台达到目标。默认五平台各 5 个，不能把“共找到 5 个”说成完成。

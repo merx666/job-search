@@ -112,11 +112,11 @@ def run_lock():
                 handle.write(b'0'); handle.flush()
             handle.seek(0)
             try: msvcrt.locking(handle.fileno(), msvcrt.LK_NBLCK, 1)
-            except OSError as e: raise TabbitError('BROWSER_RUN_BUSY：已有 Job Scout 正在运行；不要并发启动或重复重试。') from e
+            except OSError as e: raise TabbitError('BROWSER_RUN_BUSY：已有 Job Search 正在运行；不要并发启动或重复重试。') from e
         else:
             import fcntl
             try: fcntl.flock(handle.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-            except OSError as e: raise TabbitError('BROWSER_RUN_BUSY：已有 Job Scout 正在运行；不要并发启动或重复重试。') from e
+            except OSError as e: raise TabbitError('BROWSER_RUN_BUSY：已有 Job Search 正在运行；不要并发启动或重复重试。') from e
         try: yield
         finally:
             if os.name == 'nt':
