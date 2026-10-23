@@ -1,5 +1,74 @@
 """Per-platform completion contract shared by CLI, reports and the skill agent."""
 from .core import PLATFORMS, safe_url, target_count
+from collections import Counter
+
+
+def browser_budget(plan, state):
+    """Expose recorded usage, never turn missing counters into exhausted budgets."""
+    pages = state.get('pages_read')
+    queries = state.get('queries')
+    if pages is None and isinstance(queries, list):
+        counts = [q.get('pages') if isinstance(q, dict) else None for q in queries]
+        if all(type(n) is int and n >= 0 for n in counts):
+            pages = sum(counts)
+    attempted = state.get('details_attempted')
+    read = state.get('details_read')
+    result = {}
+    for name, used, limit in [('pages', pages, plan['max_pages_per_platform']),
+                              ('details', attempted, plan['max_details_per_platform'])]:
+        known = type(used) is int and used >= 0
+        result[name] = {'used': used if known else None, 'limit': limit,
+                        'remaining': max(0, limit - used) if known else None}
+    result['details_read'] = read if type(read) is int and read >= 0 else None
+    return result
+
+
+def collection_step(plan, state, mine):
+    """Choose the next useful bounded operation from existing evidence."""
+    budget = browser_budget(plan, state)
+    visited = {safe_url(u) for u in state.get('detail_urls', [])}
+    # Strict unknown-policy exclusions can still be verified; known hard
+    # failures cannot. Deduplicate links even when a source supplies two IDs.
+    unresolved = [j for j in mine if j.get('unknowns') and not j.get('rejections')]
+    candidates = [j for j in unresolved if safe_url(j.get('link'), j['platform'])
+                  and safe_url(j['link']) not in visited]
+    candidates.sort(key=lambda j: (-j.get('score', 0), len(j.get('unknowns', [])), j.get('key', '')))
+    unique = {}
+    for j in candidates:
+        unique.setdefault(safe_url(j['link']), j)
+    candidates = list(unique.values())
+    pages, details = budget['pages'], budget['details']
+    stop = state.get('stop_reason')
+    # A result-page cap does not prevent reading existing candidates, and a
+    # detail cap does not prohibit remaining result pages. No flag alone ends work.
+    if stop in ('budget_exhausted', 'results_exhausted') and (
+            pages['used'] is None or details['used'] is None
+            or (stop == 'results_exhausted' and pages['used'] == 0)):
+        action = 'audit_budget'
+        message = '缺少有效的实际页数或详情尝试计数，先从已有记录补齐；不能仅凭停止标记结束，也不要从头重扫。'
+    elif candidates and details['remaining'] != 0:
+        action = 'verify_details'
+        message = '优先核实已有高匹配候选，每批最多 5 个；记录尝试、成功读取及已访问链接，再检查进度。'
+    elif stop != 'results_exhausted' and pages['remaining'] != 0:
+        action = 'collect_more'
+        message = '继续已确认查询的下一页，每批 1 页后检查进度；从现有页面续接，不重复扫描首页。'
+    elif stop == 'results_exhausted' or pages['remaining'] == 0:
+        action = 'shortfall'
+        message = ('当前查询已无更多结果' if stop == 'results_exhausted' else '已达到结果页上限')
+        message += ('，已达到详情尝试上限' if details['remaining'] == 0 else '，没有尚未尝试且有详情链接的可核实候选')
+        message += '；如实交付不足，不降低条件凑数。'
+    else:
+        action = 'audit_budget'
+        message = '核对实际预算使用情况与可继续的查询。'
+    usage = (f'结果页 {pages["used"] if pages["used"] is not None else "未记录"}/{pages["limit"]}；'
+             f'详情尝试 {details["used"] if details["used"] is not None else "未记录"}/{details["limit"]}；'
+             f'成功读取 {budget["details_read"] if budget["details_read"] is not None else "未记录"}。')
+    gaps = Counter(u for j in unresolved for u in j.get('unknowns', []))
+    if gaps:
+        usage += '主要缺证：' + '；'.join(f'{u}（{n} 条）' for u, n in gaps.most_common(3)) + '。'
+    queue = [{'key': j.get('key'), 'title': j['title'], 'url': j['link'], 'unknowns': j.get('unknowns', [])}
+             for j in candidates[:min(5, details['remaining']) if details['remaining'] is not None else 5]]
+    return action, message + usage, budget, queue
 
 
 def login_prompt(platform, state):
@@ -20,6 +89,7 @@ def platform_progress(plan, jobs, statuses):
         missing = max(0, target - qualified)
         status = state.get('status', 'not_scanned')
         url = safe_url(state.get('loginLink'), key) or safe_url(state.get('url'), key) or PLATFORMS[key]['home']
+        budget, detail_queue = browser_budget(plan, state), []
         if status == 'skipped' and state.get('note'):
             action, message = 'shortfall', '用户明确跳过此平台：' + state['note']
         elif status == 'login_required':
@@ -50,20 +120,14 @@ def platform_progress(plan, jobs, statuses):
             action = 'tabbit_search'
             message = f'必须继续用 Tabbit 在{PLATFORMS[key]["name"]}执行已确认查询；目标 {target} 个。不能在只完成 BOSS/猎聘后结束。'
         elif missing:
-            # Reaching a page limit is evidence only when explicitly recorded, not inferred from a low count.
-            stop = state.get('stop_reason')
-            if stop in ('results_exhausted', 'budget_exhausted'):
-                action = 'shortfall'
-                message = f'符合 {qualified}/{target} 个，待核实 {review} 个；停止原因：' + {
-                    'results_exhausted':'当前查询已无更多结果', 'budget_exhausted':'达到已确认的浏览预算'}[stop] + '。如实交付不足，不降低条件凑数。'
-            else:
-                action = 'collect_more'
-                message = f'还差 {missing} 个；继续翻页或核实候选详情。待核实 {review} 个不计入已满足数量。'
+            action, message, budget, detail_queue = collection_step(plan, state, mine)
+            message = f'符合 {qualified}/{target} 个，待核实 {review} 个，还差 {missing} 个。' + message
         else:
             action, message = 'verify_coverage', '数量已达到，但查询覆盖状态未确认；核对并记录实际完成的查询。'
         rows.append({'platform':key, 'name':PLATFORMS[key]['name'], 'target':target,
                      'qualified':qualified, 'review':review, 'missing':missing, 'status':status,
-                     'action':action, 'message':message, 'url':url})
+                     'action':action, 'message':message, 'url':url,
+                     'budget':budget, 'detail_queue':detail_queue})
     return rows
 
 

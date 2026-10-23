@@ -47,6 +47,23 @@ def validate_statuses(raw, p):
             raise ValueError('平台状态 URL 不合法')
         if s['status']=='skipped' and (not isinstance(s.get('note'),str) or not s['note'].strip()):
             raise ValueError('跳过平台必须在 note 中记录用户的明确指令')
+        for field in ('pages_read','details_attempted','details_read'):
+            if field in s and (type(s[field]) is not int or s[field] < 0):
+                raise ValueError(field+' 必须为非负整数')
+        if 'details_read' in s and s['details_read'] > s.get('details_attempted', 0):
+            raise ValueError('details_read 不能超过 details_attempted')
+        if 'detail_urls' in s:
+            urls=s['detail_urls']
+            if not isinstance(urls,list) or any(not isinstance(u,str) or not safe_url(u,k) for u in urls):
+                raise ValueError('detail_urls 必须是本平台已尝试详情链接数组')
+            if len(set(urls)) > s.get('details_attempted',0):
+                raise ValueError('detail_urls 数量不能超过 details_attempted')
+        if 'queries' in s:
+            queries=s['queries']
+            if not isinstance(queries,list) or any(not isinstance(q,dict) or type(q.get('pages')) is not int or q['pages'] < 0 for q in queries):
+                raise ValueError('queries 必须记录各查询的非负整数 pages')
+            if 'pages_read' in s and s['pages_read'] != sum(q['pages'] for q in queries):
+                raise ValueError('pages_read 与 queries 页数之和不一致')
     return raw
 
 def demo(out):
@@ -82,6 +99,9 @@ def main():
     prepare.add_argument('--platforms');prepare.add_argument('--out',required=True)
     prepare.add_argument('--count',type=int,help='每个平台的目标岗位数，默认 5；可与 --input 一起修改计划')
     prepare.add_argument('--platform-count',action='append',default=[],metavar='平台=数量',help='单个平台覆盖数量，例如 boss=10；可重复')
+    prepare.add_argument('--pages',type=int,help='每平台结果页总上限（1–60），优先于自动预算')
+    prepare.add_argument('--details',type=int,help='每平台详情尝试总上限（1–600），优先于自动预算')
+    prepare.add_argument('--auto-budget',action='store_true',help='显式重新计算输入计划的预算；生成新计划后须确认')
     pre=sub.add_parser('preflight',help='仅检查平台登录与访问状态，不进行岗位搜索')
     pre.add_argument('--plan',required=True);pre.add_argument('--out',required=True);pre.add_argument('--only',help='仅重检这些平台，逗号分隔')
     scan=sub.add_parser('scan',help='确认后采集 BOSS/猎聘；其他平台交给 Tabbit 界面流程')
@@ -111,7 +131,6 @@ def main():
         if args.platforms:raw['platforms']=args.platforms.split(',')
         if args.count is not None:
             raw['jobs_per_platform']=args.count
-            raw['max_details_per_platform']=None
         if args.platform_count:
             overrides=dict(raw.get('platform_job_counts',{}))
             for value in args.platform_count:
@@ -120,7 +139,11 @@ def main():
                 except ValueError:
                     raise ValueError('--platform-count 请写为平台=数量，例如 boss=10')
             raw['platform_job_counts']=overrides
+        if args.auto_budget:
+            raw['max_pages_per_platform']=None
             raw['max_details_per_platform']=None
+        if args.pages is not None:raw['max_pages_per_platform']=args.pages
+        if args.details is not None:raw['max_details_per_platform']=args.details
         p=validate_plan(raw);save(args.out,p)
         print(json.dumps({'plan':p,'confirmation_id':digest(p),'next':'向用户展示条件、建议方向、未知值策略与平台；收到明确确认后才 scan --confirm 此 ID。计划有变须重新确认。'},ensure_ascii=False,indent=2));return 0
     if args.cmd=='demo':
@@ -191,29 +214,35 @@ def run_browser(args,p,selected):
                     statuses[platform].update(status='guided_pending',note=note)
                     print(f'【必须继续】{PLATFORMS[platform]["name"]}：{note}',flush=True)
                     continue
-                remaining=p['max_pages_per_platform'];queries=[];cooldown=False
+                queries=[];cooldown=False
                 pairs=[(kw,city) for kw in p['keywords'] for city in p['cities']]
                 for idx,(kw,city) in enumerate(pairs):
+                    remaining=p['max_pages_per_platform']-sum(q['pages'] for q in queries)
+                    if remaining <= 0:break
                     if idx:time.sleep(random.uniform(5,8))
-                    budget=remaining-(len(pairs)-idx-1)
+                    # Cover each confirmed query once, then let worklist choose
+                    # detail verification before spending more pages. Larger
+                    # total budgets must not become one long browser program.
+                    budget=1
                     # Reuse only a genuine user-opened tab (it is not blanked);
                     # inspection scratch pages are ours and stay disposable.
                     res=browser.scan(task,platform,kw,city,budget,
                         tab_id=state.get('tab_id') if state.get('reused_tab') else None)
-                    if res.get('immediate'):
+                    used=max(1,res.get('pages',0))
+                    if res.get('immediate') and remaining > used:
                         # Page blanked before any evidence arrived: one slow retry on
                         # another disposable page; a second instant blank is the
                         # platform's anti-automation escalation, not a login problem.
                         time.sleep(random.uniform(5,8))
                         retry=browser.scan(task,platform,kw,city,budget)
+                        used+=max(1,retry.get('pages',0))
                         if not retry.get('immediate'):
                             res=retry
                         else:
-                            queries.append({'keyword':kw,'city':city,'status':'anti_bot_cooldown','pages':0})
+                            queries.append({'keyword':kw,'city':city,'status':'anti_bot_cooldown','pages':used})
                             cooldown=True
                             break
-                    remaining-=res.get('pages',1)
-                    queries.append({'keyword':kw,'city':city,'status':res['status'],'pages':res.get('pages',0)})
+                    queries.append({'keyword':kw,'city':city,'status':res['status'],'pages':used})
                     all_jobs.extend(res.get('jobs',[]))
                     if res['status'] not in ('ok','empty'):break
                 if cooldown:
@@ -225,6 +254,7 @@ def run_browser(args,p,selected):
                 good=len(queries)==len(pairs) and all(q['status'] in ('ok','empty') for q in queries)
                 count=sum(j['platform']==platform for j in all_jobs)
                 statuses[platform].update(status=('ok' if count else 'empty') if good else 'partial',jobs=count,queries=queries,
+                    details_attempted=0,details_read=0,detail_urls=[],
                     note='已读取页面证据；只覆盖本轮有限页数。' if good else '部分查询未完成，请核对 queries 中的状态；勿把缺失当零结果。')
                 if not good and res['status'] in ('platform_rate_limited','access_denied','login_required','blocked','browser_error'):
                     statuses[platform]['status']=res['status']

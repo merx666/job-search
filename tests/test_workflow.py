@@ -35,7 +35,7 @@ class WorkflowTests(unittest.TestCase):
         p=plan(jobs_per_platform=8,platform_job_counts={'boss':10})
         self.assertEqual(target_count(p,'boss'),10);self.assertEqual(target_count(p,'liepin'),8)
         self.assertEqual(p['shortlist_limit'],18)
-        self.assertEqual(p['max_details_per_platform'],20)
+        self.assertEqual(p['max_details_per_platform'],60)
     def test_old_total_does_not_steal_other_platform_quota(self):
         p=plan(jobs_per_platform=20,shortlist_limit=30)
         self.assertEqual(p['shortlist_limit'],40)
@@ -66,6 +66,9 @@ class WorkflowTests(unittest.TestCase):
         s={k:{'status':'ok'} for k in p['platforms']}
         self.assertFalse(next_actions(p,rows,s)['can_deliver_final'])
         for k in s:s[k]['stop_reason']='budget_exhausted'
+        self.assertFalse(next_actions(p,rows,s)['can_deliver_final'])
+        for k in s:
+            s[k].update(pages_read=p['max_pages_per_platform'],details_attempted=p['max_details_per_platform'])
         a=next_actions(p,rows,s)
         self.assertTrue(a['can_deliver_final']);self.assertFalse(a['complete'])
     def test_login_is_user_action_not_shortfall(self):

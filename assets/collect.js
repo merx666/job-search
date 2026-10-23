@@ -40,6 +40,7 @@ const listener = r => {
 const bounded=(pr,ms)=>Promise.race([pr.catch(()=>null),new Promise(res=>setTimeout(()=>res(null),ms))]);
 p.on('response',listener);
 try {
+ pagesRead=1; // The attempted navigation consumes a slot even if it fails.
  await p.goto(CFG.url,{waitUntil:'domcontentloaded',timeout:25000});
  // Bounded wait; no request replays, reload loops, fingerprint changes or bypass.
  // Every in-page read is raced: evaluates can hang while the platform navigates
@@ -52,7 +53,6 @@ try {
  }
  await Promise.race([Promise.all(pending),new Promise(res=>setTimeout(res,6000))]);
  let state=await bounded(p.evaluate(readState),3000)||{blocked:false,wall:false,empty:false};
- pagesRead=1;
  // Only an observed enabled next-page control can trigger another page.
  while(pagesRead<CFG.budget && records.length && !state.blocked && !state.wall && !apiError && p.url()!=='about:blank') {
   const next=p.getByRole('button',{name:'下一页',exact:true});

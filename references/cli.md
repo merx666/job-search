@@ -14,6 +14,15 @@
 
 计划格式见 [自定义示例](../examples/custom-plan.json) 和 [简历示例](../examples/resume-plan.json)。`jobs_per_platform` 控制统一数量，`platform_job_counts` 覆盖特定平台；一个平台的富余不能抵扣另一个平台的缺口。
 
+新计划自动生成预算，显式上限及旧计划保持不变。需要扩容时只生成待确认计划，不自动搜索：
+
+```bash
+.venv/bin/python job_search.py plan --input ~/job-search-runs/my-plan.json --auto-budget --out ~/job-search-runs/larger-plan.json
+.venv/bin/python job_search.py plan --input ~/job-search-runs/my-plan.json --pages 12 --details 60 --out ~/job-search-runs/custom-budget.json
+```
+
+输出变化给用户确认，后续仍累加旧用量。`--count` 不覆盖输入计划中已有的显式预算；`--auto-budget` 才重新估算。详见 [浏览预算](budget.md)。
+
 ## 确认后搜索
 
 先展示完整计划并得到用户明确确认，再复制输出的 `confirmation_id`：
@@ -40,7 +49,7 @@
 .venv/bin/python job_search.py scan --plan ~/job-search-runs/my-plan.json --confirm 已确认计划的ID --only boss --out ~/job-search-runs/resume-boss
 ```
 
-使用新输出目录保留旧证据。不变的计划无需重复询问用户。遇模型 429 时暂停整轮调用，恢复后先读已有计划、状态和原 request receipt，不从头重复搜索。
+使用新输出目录保留旧证据。不变的计划无需重复询问用户。`scan --only` 不会自动读取旧目录；如果已有查询记录，由 Agent 先合并旧岗位和累计用量，再从现有页面续接翻页/详情，不能通过重跑首页获得新预算。遇模型 429 时暂停整轮调用，恢复后先读已有计划、状态和原 request receipt，不从头重复搜索。
 
 ## 合并报告与检查进度
 

@@ -45,9 +45,9 @@
 - `guided_pending` / `needs_inspection` / `app_required`：待 Agent 界面操作 / 状态需核实 / 需要 App。
 - `not_scanned` / `imported`：未搜索 / 只有导入证据，未证明查询完成。
 
-对象可有 `jobs`（读取条数）、`url`（同平台入口）、`note`（具体说明）、`queries`（关键词/城市/status/pages）。只用 `ok/empty` 计入已完成搜索平台数，数量是否达标单独计算。新增 `skipped` 仅用于用户明确跳过，note 必须记录其指令；不能将未登录当成跳过。`stop_reason` 可为 `results_exhausted`（确无后续结果）或 `budget_exhausted`（记录实际页数），缺少证据不能自行填。
+对象可有 `jobs`（读取条数）、`url`（同平台入口）、`note`（具体说明）、`queries`（关键词/城市/status/pages）。只用 `ok/empty` 计入已完成搜索平台数，数量是否达标单独计算。新增 `skipped` 仅用于用户明确跳过，note 必须记录其指令；不能将未登录当成跳过。`stop_reason` 可为 `results_exhausted`（确无后续结果）或 `budget_exhausted`，缺少证据不能自行填。结果页取 `queries[].pages` 之和或 `pages_read`；同时提供时必须相等。详情用 `details_attempted` 记录尝试（含失败/重试）、`details_read` 记录成功读取，`detail_urls` 记录已尝试的本平台详情链接。计数必须为非负整数，成功数与去重链接数不得超过尝试数。未知计数不当作已耗尽。
 
-默认每个平台 5 个；`jobs_per_platform` 控制统一数量，`platform_job_counts` 按平台覆盖，均支持 1–100。旧的 `shortlist_limit` 仅保留为各平台目标和的派生字段，不再全局截断。详情页预算与结果页分开。每次报告生成 `next-actions.json/md`，含各平台 target/qualified/review/missing/action；待核实不算 qualified。无状态文件时程序默认 `imported/not_scanned`，不捏造完成率。
+默认每个平台 5 个；`jobs_per_platform` 控制统一数量，`platform_job_counts` 按平台覆盖，均支持 1–100。旧的 `shortlist_limit` 仅保留为各平台目标和的派生字段，不再全局截断。预算公式和累计规则见 [浏览预算](budget.md)。每次报告生成 `next-actions.json/md`，含各平台 target/qualified/review/missing/action、`budget`（使用/上限/剩余）、`detail_queue`（最多 5 条未尝试候选）；待核实不算 qualified。`verify_details`、`collect_more`、`audit_budget` 都是 Agent 待办；不能看到停止标记就结束。无状态文件时程序默认 `imported/not_scanned`，不捏造完成率。
 
 ## 判定边界
 

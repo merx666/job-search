@@ -24,7 +24,9 @@ class CoreTests(unittest.TestCase):
         for kw in ({'salary_min_k':float('nan')},{'salary_min_k':-1},{'salary_min_k':30,'salary_max_k':10},{'fresh_days':True}):
             with self.assertRaises(ValueError):plan(**kw)
     def test_global_budget(self):
-        with self.assertRaises(ValueError):plan(keywords=['财务','会计'],cities=['上海','北京'])
+        p=plan(keywords=['财务','会计'],cities=['上海','北京'])
+        self.assertEqual(p['max_pages_per_platform'],8)
+        with self.assertRaises(ValueError):plan(keywords=['财务','会计'],cities=['上海','北京'],max_pages_per_platform=3)
     def test_proposal_not_searched_until_accepted(self):
         s={'title':'经营分析师','evidence':'负责预算','gap':'需要核实业务分析经验','accepted':False}
         p=plan(suggested_directions=[s]);self.assertNotIn(s['title'],p['keywords'])

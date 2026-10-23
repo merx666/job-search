@@ -25,7 +25,7 @@ DEFAULTS = {
     'must_keywords': [], 'plus_keywords': [], 'avoid_keywords': [],
     'experience_years': None, 'education': None, 'employment_types': [],
     'industries': [], 'company_sizes': [], 'extra_requirements': [],
-    'suggested_directions': [], 'max_pages_per_platform': 3,
+    'suggested_directions': [], 'max_pages_per_platform': None,
     'jobs_per_platform': 5, 'platform_job_counts': {},
     'max_details_per_platform': None, 'shortlist_limit': None,
 }
@@ -55,7 +55,7 @@ def validate_plan(raw):
         raise ValueError('unknown_policy 必须是 review / exclude')
     if type(p['require_active']) is not bool:
         raise ValueError('require_active 必须是布尔值')
-    for k, lo, hi in [('fresh_days', 1, 365), ('active_days', 1, 60), ('max_pages_per_platform', 1, 3), ('jobs_per_platform', 1, 100)]:
+    for k, lo, hi in [('fresh_days', 1, 365), ('active_days', 1, 60), ('jobs_per_platform', 1, 100)]:
         if type(p[k]) is not int or not lo <= p[k] <= hi:
             raise ValueError(f'{k} 必须为 {lo}–{hi} 的整数')
     overrides = p['platform_job_counts']
@@ -66,12 +66,19 @@ def validate_plan(raw):
     # Old global cap is retained only as a derived field for v0.2.0 plan compatibility.
     # It must never let one platform consume another platform's quota.
     p['shortlist_limit'] = sum(target_count(p, k) for k in p['platforms'])
+    pairs = len(p['keywords']) * len(p['cities'])
+    largest_target = max(target_count(p, k) for k in p['platforms'])
+    # Resolve defaults only for new/unset budgets. Persisted plans and their
+    # confirmation digests must retain the exact limits the user approved.
+    if p['max_pages_per_platform'] is None:
+        p['max_pages_per_platform'] = max(6, 2 * pairs, 3 * math.ceil(largest_target / 5))
     if p['max_details_per_platform'] is None:
-        p['max_details_per_platform'] = max(10, max(target_count(p, k) for k in p['platforms']) * 2)
-    if type(p['max_details_per_platform']) is not int or not 1 <= p['max_details_per_platform'] <= 200:
-        raise ValueError('max_details_per_platform 须为 1–200 的整数')
-    if len(p['keywords']) * len(p['cities']) > p['max_pages_per_platform']:
-        raise ValueError('关键词 × 城市数量超过每平台总页预算；缩小本轮范围，不能暗中漏搜或超预算')
+        p['max_details_per_platform'] = max(30, 6 * largest_target)
+    for k, hi in [('max_pages_per_platform', 60), ('max_details_per_platform', 600)]:
+        if type(p[k]) is not int or not 1 <= p[k] <= hi:
+            raise ValueError(f'{k} 须为 1–{hi} 的整数；超大搜索请拆轮，不静默截断')
+    if pairs > p['max_pages_per_platform']:
+        raise ValueError('关键词 × 城市数量超过每平台总页预算；展示更高预算或拆轮后确认，不能暗中漏搜或超预算')
     for k in ('salary_min_k', 'salary_max_k', 'experience_years'):
         n = p[k]
         if n is not None and (type(n) not in (int, float) or not math.isfinite(n) or n < 0):

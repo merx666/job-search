@@ -13,7 +13,7 @@ FILES=['SKILL.md','README.md','LICENSE','THIRD_PARTY_NOTICES.md','requirements.t
        'references/platforms.md','references/tabbit.md','references/verification.md',
        'assets/README.md','assets/demo.gif','assets/report-overview.png','assets/report-evidence.png','assets/wechat-qr.jpg',
        'references/cli.md','tests/test_core.py','tests/test_cli.py','tests/test_browser_session.py','tests/test_page_state.cjs','tests/test_workflow.py','tests/test_rename.py','tests/test_transport.py','tests/test_collect.cjs',
-       '.github/workflows/tests.yml']
+       'tests/test_budget.py','references/budget.md','.github/workflows/tests.yml']
 
 def release_files():
     paths=[ROOT/p for p in FILES]
